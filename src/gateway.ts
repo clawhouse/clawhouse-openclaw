@@ -251,6 +251,9 @@ async function runPollingFallback(opts: {
 /**
  * Poll the messages endpoint and deliver new messages to the OpenClaw agent.
  * Returns the new cursor, or null if no messages.
+ *
+ * On first run (cursor is null), we skip delivering old messages and just
+ * seed the cursor so we only receive messages from this point forward.
  */
 async function pollAndDeliver(
   client: ClawHouseClient,
@@ -259,9 +262,22 @@ async function pollAndDeliver(
   log: PluginLogger,
 ): Promise<string | null> {
   try {
+    const isFirstRun = cursor == null;
+
     const response = await client.listMessages({
       ...(cursor != null && { cursor }),
     });
+
+    // On first run, don't deliver old messages — just seed the cursor
+    if (isFirstRun) {
+      if (response.cursor) {
+        log.info(
+          `First run: skipping ${response.items.length} existing message(s), seeding cursor.`,
+        );
+        saveCursor(ctx, response.cursor);
+      }
+      return response.cursor;
+    }
 
     if (response.items.length === 0) return null;
 
