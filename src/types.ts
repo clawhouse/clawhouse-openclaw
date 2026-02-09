@@ -145,6 +145,7 @@ export interface ChannelConfigAdapter {
 
 export interface ChannelOutboundAdapter {
   deliveryMode: 'direct' | 'gateway' | 'hybrid';
+  resolveTarget?(target: string, ctx: { cfg: unknown; accountId?: string | null }): { to: string } | null;
   sendText?(ctx: ChannelOutboundContext): Promise<OutboundDeliveryResult>;
   textChunkLimit?: number;
   chunkerMode?: 'text' | 'markdown';
@@ -217,6 +218,7 @@ export interface ResolvedClawHouseAccount {
   botToken: string;
   apiUrl: string;
   wsUrl: string;
+  userId: string;
   enabled: boolean;
 }
 
@@ -225,6 +227,7 @@ export interface ClawHouseChannelConfig {
   botToken: string;
   apiUrl: string;
   wsUrl: string;
+  userId: string;
   accounts?: Record<string, Omit<ClawHouseChannelConfig, 'accounts'>>;
 }
 

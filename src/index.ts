@@ -4,7 +4,7 @@ import { createClawHouseTools } from './tools';
 import type { OpenClawPluginApi } from './types';
 
 const plugin = {
-  id: 'clawhouse',
+  id: 'clawhouse-openclaw',
   name: 'ClawHouse',
 
   register(api: OpenClawPluginApi) {

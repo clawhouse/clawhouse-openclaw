@@ -52,6 +52,7 @@ export const clawHousePlugin: ChannelPlugin = {
           botToken: '',
           apiUrl: '',
           wsUrl: '',
+          userId: '',
           enabled: false,
         };
       }
@@ -64,6 +65,7 @@ export const clawHousePlugin: ChannelPlugin = {
         botToken: acct.botToken ?? '',
         apiUrl: acct.apiUrl ?? '',
         wsUrl: acct.wsUrl ?? '',
+        userId: acct.userId ?? '',
         enabled: acct.enabled !== false,
       };
     },
@@ -90,6 +92,13 @@ export const clawHousePlugin: ChannelPlugin = {
     deliveryMode: 'direct',
     chunkerMode: 'markdown',
     textChunkLimit: 2000,
+
+    resolveTarget(_target, { cfg, accountId }) {
+      // Resolve to the userId configured for this account
+      const acct = clawHousePlugin.config.resolveAccount(cfg, accountId);
+      if (!acct.userId) return null;
+      return { to: acct.userId };
+    },
 
     async sendText(ctx) {
       const runtime = getClawHouseRuntime();
@@ -169,6 +178,7 @@ export const clawHousePlugin: ChannelPlugin = {
         clawhouse.botToken = input.botToken;
         clawhouse.apiUrl = input.apiUrl;
         clawhouse.wsUrl = input.wsUrl;
+        clawhouse.userId = input.userId;
         clawhouse.enabled = true;
       } else {
         const accounts = (clawhouse.accounts ?? {}) as Record<string, unknown>;
@@ -176,6 +186,7 @@ export const clawHousePlugin: ChannelPlugin = {
           botToken: input.botToken,
           apiUrl: input.apiUrl,
           wsUrl: input.wsUrl,
+          userId: input.userId,
           enabled: true,
         };
         clawhouse.accounts = accounts;
@@ -197,6 +208,9 @@ export const clawHousePlugin: ChannelPlugin = {
       if (!input.wsUrl) {
         return 'WebSocket URL is required';
       }
+      if (!input.userId) {
+        return 'User ID is required';
+      }
       return null;
     },
   },
@@ -214,7 +228,8 @@ export const clawHousePlugin: ChannelPlugin = {
       const ch = getChannelConfig(ctx.cfg);
       const hasBotToken = Boolean(ch?.botToken);
       const hasApiUrl = Boolean(ch?.apiUrl);
-      const configured = hasBotToken && hasApiUrl;
+      const hasUserId = Boolean(ch?.userId);
+      const configured = hasBotToken && hasApiUrl && hasUserId;
 
       const statusLines: string[] = [];
       if (configured) {
@@ -259,10 +274,20 @@ export const clawHousePlugin: ChannelPlugin = {
         validate: (v) => (v.startsWith('ws') ? undefined : 'Must start with ws:// or wss://'),
       });
 
+      const userId = await ctx.prompter.text({
+        message: 'Your ClawHouse User ID (shown in install instructions)',
+        initialValue: ch?.userId ?? '',
+        placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+        validate: (v) =>
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)
+            ? undefined
+            : 'Must be a valid UUID',
+      });
+
       const updatedCfg = clawHousePlugin.setup!.applyAccountConfig({
         cfg: ctx.cfg,
         accountId,
-        input: { botToken, apiUrl, wsUrl },
+        input: { botToken, apiUrl, wsUrl, userId },
       });
 
       await ctx.prompter.note('ClawHouse channel configured.', 'Done');

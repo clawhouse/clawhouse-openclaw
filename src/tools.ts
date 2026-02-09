@@ -14,10 +14,11 @@ function resolveAccountFromConfig(api: OpenClawPluginApi): ResolvedClawHouseAcco
         botToken?: string;
         apiUrl?: string;
         wsUrl?: string;
+        userId?: string;
         enabled?: boolean;
         accounts?: Record<
           string,
-          { botToken?: string; apiUrl?: string; wsUrl?: string; enabled?: boolean }
+          { botToken?: string; apiUrl?: string; wsUrl?: string; userId?: string; enabled?: boolean }
         >;
       };
     };
@@ -35,6 +36,7 @@ function resolveAccountFromConfig(api: OpenClawPluginApi): ResolvedClawHouseAcco
       botToken: acct.botToken,
       apiUrl: acct.apiUrl,
       wsUrl: acct.wsUrl ?? '',
+      userId: acct.userId ?? '',
       enabled: acct.enabled !== false,
     };
   }
@@ -45,6 +47,7 @@ function resolveAccountFromConfig(api: OpenClawPluginApi): ResolvedClawHouseAcco
     botToken: ch.botToken,
     apiUrl: ch.apiUrl,
     wsUrl: ch.wsUrl ?? '',
+    userId: ch.userId ?? '',
     enabled: ch.enabled !== false,
   };
 }

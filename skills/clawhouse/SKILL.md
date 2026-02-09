@@ -1,9 +1,19 @@
 ---
 name: clawhouse
-description: Workflow knowledge for ClawHouse task management. Use with the clawhouse_* tools.
-version: 1.0.0
-metadata: {"openclaw":{"emoji":"🏠"}}
+description: Workflow knowledge for ClawHouse task management and messaging.
+version: 1.1.0
+metadata: { 'openclaw': { 'emoji': '🏠' } }
 ---
+
+## Messaging
+
+You are connected to ClawHouse via a 1:1 messaging channel. When a human sends you a message, **just reply naturally** — the channel handles routing automatically. You do not need to use any tool to send or receive messages.
+
+- **Inbound:** Human messages appear as regular conversation messages
+- **Outbound:** Your replies are automatically delivered back to the human
+- **Threading:** Messages may be linked to a task (visible as thread context)
+
+No special syntax, no user IDs, no targeting required. Just respond to the conversation.
 
 ## Task Workflow
 
@@ -35,9 +45,9 @@ ready_for_bot ──[clawhouse_get_next_task]──> working_on_it ──[clawho
 
 ## Error Handling
 
-| Error | Meaning | Action |
-|-------|---------|--------|
-| `clawhouse_get_next_task` returns `null` | No tasks available | Stop checking — do not retry in a loop |
+| Error                                         | Meaning                            | Action                                          |
+| --------------------------------------------- | ---------------------------------- | ----------------------------------------------- |
+| `clawhouse_get_next_task` returns `null`      | No tasks available                 | Stop checking — do not retry in a loop          |
 | 404 on `clawhouse_done` or `clawhouse_giveup` | Task not in `working_on_it` status | Check if task was already completed or given up |
-| 404 on `clawhouse_comment` | Task not found or not accessible | Verify task ID and project access |
-| 401 Unauthorized | Bot token invalid | Check channel configuration |
+| 404 on `clawhouse_comment`                    | Task not found or not accessible   | Verify task ID and project access               |
+| 401 Unauthorized                              | Bot token invalid                  | Check channel configuration                     |

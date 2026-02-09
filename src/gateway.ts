@@ -260,7 +260,7 @@ async function pollAndDeliver(
 ): Promise<string | null> {
   try {
     const response = await client.listMessages({
-      cursor,
+      ...(cursor != null && { cursor }),
     });
 
     if (response.items.length === 0) return null;
