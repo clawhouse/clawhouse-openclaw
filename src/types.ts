@@ -108,6 +108,15 @@ export interface PluginLogger {
 }
 
 // Channel plugin interfaces
+export interface ChannelMessagingTargetResolver {
+  hint?: string;
+  looksLikeId?(raw: string, normalized?: string): boolean;
+}
+
+export interface ChannelMessagingAdapter {
+  targetResolver?: ChannelMessagingTargetResolver;
+}
+
 export interface ChannelPlugin {
   id: string;
   meta: ChannelMeta;
@@ -117,6 +126,7 @@ export interface ChannelPlugin {
   gateway?: ChannelGatewayAdapter;
   setup?: ChannelSetupAdapter;
   security?: ChannelSecurityAdapter;
+  messaging?: ChannelMessagingAdapter;
   onboarding?: ChannelOnboardingAdapter;
   status?: ChannelStatusAdapter;
 }

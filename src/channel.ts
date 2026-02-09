@@ -215,6 +215,17 @@ export const clawHousePlugin: ChannelPlugin = {
     },
   },
 
+  messaging: {
+    targetResolver: {
+      hint: 'Use a ClawHouse user UUID (e.g. 10602015-655e-4fc1-a63f-897a442d91b6)',
+      looksLikeId(raw: string): boolean {
+        return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          raw.trim(),
+        );
+      },
+    },
+  },
+
   security: {
     resolveDmPolicy() {
       return { policy: 'open' };
