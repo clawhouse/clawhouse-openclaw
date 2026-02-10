@@ -1,14 +1,12 @@
-import WebSocket from 'ws';
-
 import { ClawHouseClient } from './client';
 import { deliverMessageToAgent } from './deliver';
 import { getClawHouseRuntime } from './runtime';
 import type {
   ChannelGatewayContext,
-  ChatMessage,
   PluginLogger,
   WsNotification,
 } from './types';
+import WebSocket from 'ws';
 
 const PING_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes (API GW idle timeout = 10 min)
 const POLL_FALLBACK_INTERVAL_MS = 30 * 1000; // 30s fallback when WS is down
@@ -94,7 +92,8 @@ export async function startClawHouseConnection(
 ): Promise<void> {
   const account = ctx.account;
   const client = new ClawHouseClient(account.botToken, account.apiUrl);
-  const log = ctx.log ?? getClawHouseRuntime().logging.createLogger('clawhouse');
+  const log =
+    ctx.log ?? getClawHouseRuntime().logging.createLogger('clawhouse');
 
   let cursor = loadCursor(ctx);
   const backoff: BackoffState = { attempt: 0 };
@@ -180,7 +179,9 @@ async function runWebSocketConnection(opts: {
 
     ws.on('message', async (data) => {
       try {
-        const msg = JSON.parse(data.toString()) as WsNotification | { action: string };
+        const msg = JSON.parse(data.toString()) as
+          | WsNotification
+          | { action: string };
 
         if (msg.action === 'notify') {
           // Thin notification — poll for full data

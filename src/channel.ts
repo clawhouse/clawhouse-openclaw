@@ -1,11 +1,15 @@
 import { ClawHouseClient } from './client';
 import { startClawHouseConnection } from './gateway';
+import {
+  CHANNEL_HINTS,
+  CHANNEL_META,
+  STATUS_MESSAGES,
+} from './llm-definitions';
 import { getClawHouseRuntime } from './runtime';
 import type {
   ChannelAccountSnapshot,
   ChannelLogoutContext,
   ChannelPlugin,
-  ChannelProbeResult,
   ClawHouseChannelConfig,
   ResolvedClawHouseAccount,
 } from './types';
@@ -18,10 +22,7 @@ function getChannelConfig(cfg: unknown): ClawHouseChannelConfig | null {
 export const clawHousePlugin: ChannelPlugin = {
   id: 'clawhouse',
 
-  meta: {
-    name: 'ClawHouse',
-    description: '1:1 messaging channel for ClawHouse bots',
-  },
+  meta: CHANNEL_META,
 
   capabilities: {
     text: true,
@@ -78,7 +79,7 @@ export const clawHousePlugin: ChannelPlugin = {
       return account.enabled;
     },
 
-    describeAccount(account: ResolvedClawHouseAccount, cfg: unknown): ChannelAccountSnapshot {
+    describeAccount(account: ResolvedClawHouseAccount): ChannelAccountSnapshot {
       const isConfigured = Boolean(account.botToken && account.apiUrl);
       return {
         accountId: account.accountId,
@@ -113,7 +114,6 @@ export const clawHousePlugin: ChannelPlugin = {
 
       try {
         await client.sendMessage({
-          userId: ctx.to,
           content: ctx.text,
           taskId: ctx.threadId ? String(ctx.threadId) : undefined,
         });
@@ -134,24 +134,34 @@ export const clawHousePlugin: ChannelPlugin = {
     },
 
     async stopAccount(ctx) {
-      const log = ctx.log ?? getClawHouseRuntime().logging.createLogger('clawhouse');
+      const log =
+        ctx.log ?? getClawHouseRuntime().logging.createLogger('clawhouse');
       log.info(`Stopping ClawHouse account ${ctx.accountId}`);
       ctx.setStatus({ running: false, lastStopAt: Date.now() });
     },
 
     async logoutAccount(ctx: ChannelLogoutContext) {
-      const log = ctx.log ?? getClawHouseRuntime().logging.createLogger('clawhouse');
-      const runtime = ctx.runtime as { config: { writeConfigFile(cfg: unknown): Promise<void> } };
+      const log =
+        ctx.log ?? getClawHouseRuntime().logging.createLogger('clawhouse');
+      const runtime = ctx.runtime as {
+        config: { writeConfigFile(cfg: unknown): Promise<void> };
+      };
 
       // Clone config immutably
-      const config = JSON.parse(JSON.stringify(ctx.cfg)) as Record<string, unknown>;
+      const config = JSON.parse(JSON.stringify(ctx.cfg)) as Record<
+        string,
+        unknown
+      >;
       const channels = (config.channels ?? {}) as Record<string, unknown>;
       const clawhouse = (channels.clawhouse ?? {}) as Record<string, unknown>;
 
       if (ctx.accountId === 'default') {
         delete clawhouse.botToken;
       } else {
-        const accounts = (clawhouse.accounts ?? {}) as Record<string, Record<string, unknown>>;
+        const accounts = (clawhouse.accounts ?? {}) as Record<
+          string,
+          Record<string, unknown>
+        >;
         if (accounts[ctx.accountId]) {
           delete accounts[ctx.accountId].botToken;
         }
@@ -216,12 +226,16 @@ export const clawHousePlugin: ChannelPlugin = {
   },
 
   messaging: {
+    normalizeTarget(raw: string): string | undefined {
+      const trimmed = raw.trim();
+      if (/^[UBPT][A-Z0-9]{10}$/i.test(trimmed)) return `user:${trimmed}`;
+      return undefined;
+    },
     targetResolver: {
-      hint: 'Use a ClawHouse user UUID (e.g. 10602015-655e-4fc1-a63f-897a442d91b6)',
+      hint: CHANNEL_HINTS.targetResolver,
       looksLikeId(raw: string): boolean {
-        return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-          raw.trim(),
-        );
+        const t = raw.trim();
+        return /^[UBPT][A-Z0-9]{10}$/i.test(t) || /^user:/i.test(t);
       },
     },
   },
@@ -255,7 +269,7 @@ export const clawHousePlugin: ChannelPlugin = {
         channel: 'clawhouse',
         configured,
         statusLines,
-        selectionHint: 'Connect to a ClawHouse instance for 1:1 bot messaging',
+        selectionHint: CHANNEL_HINTS.onboardingSelection,
         quickstartScore: configured ? 0 : 50,
       };
     },
@@ -268,31 +282,36 @@ export const clawHousePlugin: ChannelPlugin = {
         message: 'Bot token',
         initialValue: ch?.botToken ?? '',
         placeholder: 'bot_xxxxxxxxxxxxxxxx',
-        validate: (v) => (v.startsWith('bot_') ? undefined : 'Must start with "bot_"'),
+        validate: (v) =>
+          v.startsWith('bot_') ? undefined : 'Must start with "bot_"',
       });
 
       const apiUrl = await ctx.prompter.text({
         message: 'API URL',
         initialValue: ch?.apiUrl ?? '',
-        placeholder: 'https://api.clawhouse.net/v1/bot',
-        validate: (v) => (v.startsWith('http') ? undefined : 'Must start with http:// or https://'),
+        placeholder: 'https://app.clawhouse.net/v1/bot',
+        validate: (v) =>
+          v.startsWith('http')
+            ? undefined
+            : 'Must start with http:// or https://',
       });
 
       const wsUrl = await ctx.prompter.text({
         message: 'WebSocket URL',
         initialValue: ch?.wsUrl ?? '',
         placeholder: 'wss://ws.clawhouse.net',
-        validate: (v) => (v.startsWith('ws') ? undefined : 'Must start with ws:// or wss://'),
+        validate: (v) =>
+          v.startsWith('ws') ? undefined : 'Must start with ws:// or wss://',
       });
 
       const userId = await ctx.prompter.text({
         message: 'Your ClawHouse User ID (shown in install instructions)',
         initialValue: ch?.userId ?? '',
-        placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+        placeholder: 'U9QF3C6X1A',
         validate: (v) =>
-          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)
+          /^[UBPT][A-Z0-9]{10}$/i.test(v)
             ? undefined
-            : 'Must be a valid UUID',
+            : 'Must be a valid ClawHouse ID (e.g. U9QF3C6X1A)',
       });
 
       const updatedCfg = clawHousePlugin.setup!.applyAccountConfig({
@@ -319,16 +338,23 @@ export const clawHousePlugin: ChannelPlugin = {
 
   status: {
     async probeAccount(params) {
-      const isConfigured = Boolean(params.account.botToken && params.account.apiUrl);
+      const isConfigured = Boolean(
+        params.account.botToken && params.account.apiUrl,
+      );
       if (!isConfigured) {
-        return { ok: false, error: 'Account not configured' };
+        return { ok: false, error: STATUS_MESSAGES.probeNotConfigured };
       }
-      const client = new ClawHouseClient(params.account.botToken, params.account.apiUrl);
+      const client = new ClawHouseClient(
+        params.account.botToken,
+        params.account.apiUrl,
+      );
       return client.probe(params.timeoutMs);
     },
 
     buildAccountSnapshot(params): ChannelAccountSnapshot {
-      const isConfigured = Boolean(params.account.botToken && params.account.apiUrl);
+      const isConfigured = Boolean(
+        params.account.botToken && params.account.apiUrl,
+      );
       return {
         accountId: params.account.accountId,
         enabled: params.account.enabled,
@@ -352,8 +378,8 @@ export const clawHousePlugin: ChannelPlugin = {
             channel: 'clawhouse',
             accountId: id,
             kind: 'config',
-            message: 'Account is not configured',
-            fix: 'Run onboarding to set bot token and API URL',
+            message: STATUS_MESSAGES.notConfigured.message,
+            fix: STATUS_MESSAGES.notConfigured.fix,
           });
           continue;
         }
@@ -363,8 +389,8 @@ export const clawHousePlugin: ChannelPlugin = {
             channel: 'clawhouse',
             accountId: id,
             kind: 'config',
-            message: 'Account is disabled',
-            fix: 'Set enabled: true in config',
+            message: STATUS_MESSAGES.disabled.message,
+            fix: STATUS_MESSAGES.disabled.fix,
           });
           continue;
         }
@@ -374,7 +400,7 @@ export const clawHousePlugin: ChannelPlugin = {
             channel: 'clawhouse',
             accountId: id,
             kind: 'runtime',
-            message: 'Gateway is not running',
+            message: STATUS_MESSAGES.notRunning.message,
           });
         }
 
@@ -384,7 +410,7 @@ export const clawHousePlugin: ChannelPlugin = {
             accountId: id,
             kind: 'auth',
             message: `Probe failed: ${snap.probe.error ?? 'unknown error'}`,
-            fix: 'Check bot token and API URL',
+            fix: STATUS_MESSAGES.probeFailed.fix,
           });
         }
       }

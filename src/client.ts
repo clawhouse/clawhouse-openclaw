@@ -1,4 +1,8 @@
-import type { ChannelProbeResult, MessagesResponse, WsTicketResponse } from './types';
+import type {
+  ChannelProbeResult,
+  MessagesResponse,
+  WsTicketResponse,
+} from './types';
 
 /**
  * HTTP client for the ClawHouse bot API.
@@ -45,7 +49,7 @@ export class ClawHouseClient {
 
   // Messages
   async sendMessage(input: {
-    userId: string;
+    userId?: string;
     content: string;
     taskId?: string;
   }): Promise<unknown> {

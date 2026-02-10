@@ -4,7 +4,6 @@
  * to avoid a hard dependency on the openclaw package at build time.
  * At runtime, the real types are provided by OpenClaw.
  */
-
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 // Tool types for plugin tool registration
@@ -43,7 +42,10 @@ export interface OpenClawPluginApi {
   registerChannel(registration: { plugin: ChannelPlugin }): void;
   registerHttpRoute(params: {
     path: string;
-    handler: (req: IncomingMessage, res: ServerResponse) => Promise<void> | void;
+    handler: (
+      req: IncomingMessage,
+      res: ServerResponse,
+    ) => Promise<void> | void;
   }): void;
   registerTool(
     tool: AnyAgentTool | OpenClawPluginToolFactory,
@@ -114,6 +116,7 @@ export interface ChannelMessagingTargetResolver {
 }
 
 export interface ChannelMessagingAdapter {
+  normalizeTarget?(raw: string): string | undefined;
   targetResolver?: ChannelMessagingTargetResolver;
 }
 
@@ -147,15 +150,24 @@ export interface ChannelCapabilities {
 
 export interface ChannelConfigAdapter {
   listAccountIds(cfg: unknown): string[];
-  resolveAccount(cfg: unknown, accountId?: string | null): ResolvedClawHouseAccount;
+  resolveAccount(
+    cfg: unknown,
+    accountId?: string | null,
+  ): ResolvedClawHouseAccount;
   isConfigured?(account: ResolvedClawHouseAccount, cfg: unknown): boolean;
   isEnabled?(account: ResolvedClawHouseAccount, cfg: unknown): boolean;
-  describeAccount?(account: ResolvedClawHouseAccount, cfg: unknown): ChannelAccountSnapshot;
+  describeAccount?(
+    account: ResolvedClawHouseAccount,
+    cfg: unknown,
+  ): ChannelAccountSnapshot;
 }
 
 export interface ChannelOutboundAdapter {
   deliveryMode: 'direct' | 'gateway' | 'hybrid';
-  resolveTarget?(target: string, ctx: { cfg: unknown; accountId?: string | null }): { to: string } | null;
+  resolveTarget?(
+    target: string,
+    ctx: { cfg: unknown; accountId?: string | null },
+  ): { to: string } | null;
   sendText?(ctx: ChannelOutboundContext): Promise<OutboundDeliveryResult>;
   textChunkLimit?: number;
   chunkerMode?: 'text' | 'markdown';
@@ -274,7 +286,10 @@ export interface WizardPrompter {
     placeholder?: string;
     validate?: (value: string) => string | undefined;
   }): Promise<string>;
-  confirm(params: { message: string; initialValue?: boolean }): Promise<boolean>;
+  confirm(params: {
+    message: string;
+    initialValue?: boolean;
+  }): Promise<boolean>;
   note(message: string, title?: string): Promise<void>;
 }
 
@@ -332,7 +347,9 @@ export interface ChannelStatusAdapter {
     runtime?: ChannelAccountSnapshot;
     probe?: ChannelProbeResult;
   }): ChannelAccountSnapshot;
-  collectStatusIssues?(accounts: ChannelAccountSnapshot[]): ChannelStatusIssue[];
+  collectStatusIssues?(
+    accounts: ChannelAccountSnapshot[],
+  ): ChannelStatusIssue[];
 }
 
 // Logout types
