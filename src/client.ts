@@ -117,6 +117,8 @@ export class ClawHouseClient {
 
   async listMessages(input: {
     userId?: string;
+    // Fix CP-02: Support authorType filter to exclude bot-authored messages
+    authorType?: 'bot' | 'user';
     cursor?: string | null;
     limit?: number;
   }): Promise<MessagesResponse> {
