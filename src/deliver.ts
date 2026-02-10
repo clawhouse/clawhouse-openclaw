@@ -20,7 +20,7 @@ export async function deliverMessageToAgent(
     Provider: 'clawhouse',
     Surface: 'clawhouse',
     From: message.userId,
-    To: message.botId,
+    To: message.userId,
     MessageSid: message.messageId,
     ThreadId: message.taskId ?? undefined,
     Timestamp: message.createdAt,
