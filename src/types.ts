@@ -203,8 +203,26 @@ export interface ChannelSetupAdapter {
   }): string | null;
 }
 
+export interface ChannelSecurityDmPolicy {
+  policy: string;
+  allowFrom?: Array<string | number> | null;
+  policyPath?: string;
+  allowFromPath: string;
+  approveHint: string;
+  normalizeEntry?: (raw: string) => string;
+}
+
 export interface ChannelSecurityAdapter {
-  resolveDmPolicy?(): { policy: string };
+  resolveDmPolicy?(ctx: {
+    cfg: unknown;
+    accountId?: string | null;
+    account: ResolvedClawHouseAccount;
+  }): ChannelSecurityDmPolicy | null;
+  collectWarnings?(ctx: {
+    cfg: unknown;
+    accountId?: string | null;
+    account: ResolvedClawHouseAccount;
+  }): Promise<string[]> | string[];
 }
 
 export interface ChannelOutboundContext {

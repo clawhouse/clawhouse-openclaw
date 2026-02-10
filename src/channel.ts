@@ -189,7 +189,6 @@ export const clawHousePlugin: ChannelPlugin = {
         clawhouse.apiUrl = input.apiUrl;
         clawhouse.wsUrl = input.wsUrl;
         clawhouse.userId = input.userId;
-        clawhouse.enabled = true;
       } else {
         const accounts = (clawhouse.accounts ?? {}) as Record<string, unknown>;
         accounts[accountId] = {
@@ -202,8 +201,20 @@ export const clawHousePlugin: ChannelPlugin = {
         clawhouse.accounts = accounts;
       }
 
+      // Always set top-level channel enabled
+      clawhouse.enabled = true;
       channels.clawhouse = clawhouse;
       config.channels = channels;
+
+      // Register plugin entry with channel ID to prevent auto-enable
+      // from creating a phantom disabled entry under the NPM package ID
+      const plugins = (config.plugins ?? {}) as Record<string, unknown>;
+      const entries = (plugins.entries ?? {}) as Record<string, unknown>;
+      const existing = (entries.clawhouse ?? {}) as Record<string, unknown>;
+      entries.clawhouse = { ...existing, enabled: true };
+      plugins.entries = entries;
+      config.plugins = plugins;
+
       return config;
     },
 
@@ -241,8 +252,17 @@ export const clawHousePlugin: ChannelPlugin = {
   },
 
   security: {
-    resolveDmPolicy() {
-      return { policy: 'open' };
+    resolveDmPolicy({ accountId }) {
+      const basePath =
+        accountId && accountId !== 'default'
+          ? `channels.clawhouse.accounts.${accountId}.dm.`
+          : 'channels.clawhouse.dm.';
+      return {
+        policy: 'open',
+        allowFrom: ['*'],
+        allowFromPath: basePath,
+        approveHint: 'ClawHouse uses bot token auth — no pairing needed.',
+      };
     },
   },
 
