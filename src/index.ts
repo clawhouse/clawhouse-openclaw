@@ -10,8 +10,7 @@ const plugin = {
   register(api: OpenClawPluginApi) {
     setClawHouseRuntime(api.runtime);
     api.registerChannel({ plugin: clawHousePlugin });
-    api.registerTool((ctx) => {
-      if (ctx.sandboxed) return null;
+    api.registerTool(() => {
       return createClawHouseTools(api);
     });
   },
