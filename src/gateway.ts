@@ -277,18 +277,24 @@ async function pollAndDeliver(
           `First run: skipping ${response.items.length} existing message(s), seeding cursor.`,
         );
         saveCursor(ctx, response.cursor);
-
-        try {
-          await client.sendMessage({
-            content: '🟢 Connected to ClawHouse. Ready to receive messages and tasks.',
-          });
-          log.info('Sent welcome message.');
-        } catch (err) {
-          const errMsg = err instanceof Error ? err.message : String(err);
-          log.warn(`Failed to send welcome message: ${errMsg}`);
-        }
+      } else {
+        log.info('First run: no messages yet (empty inbox).');
       }
-      return response.cursor;
+
+      try {
+        await client.sendMessage({
+          content:
+            '🟢 Connected to ClawHouse. Ready to receive messages and tasks.',
+        });
+        log.info('Sent welcome message.');
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        log.warn(`Failed to send welcome message: ${errMsg}`);
+      }
+
+      // Use a sentinel cursor when the API returns null (empty inbox)
+      // so subsequent polls don't re-trigger the first-run flow.
+      return response.cursor ?? 'SEED';
     }
 
     if (response.items.length === 0) return null;
