@@ -21,6 +21,14 @@ async function fetchAndSaveMedia(
   runtime: PluginRuntime,
   attachment: ChatMessageAttachment,
 ): Promise<{ path: string; contentType: string }> {
+  if (!attachment.url) {
+    throw new Error('Attachment URL is required');
+  }
+
+  if (!attachment.name) {
+    throw new Error('Attachment name is required');
+  }
+
   const ext = extname(attachment.name) || '.bin';
   const fileName = `${randomUUID()}${ext}`;
   const filePath = runtime.state.resolveStorePath(`media/inbound/${fileName}`);
@@ -29,16 +37,30 @@ async function fetchAndSaveMedia(
   await mkdir(dirname(filePath), { recursive: true });
 
   const response = await fetch(attachment.url);
-  if (!response.ok || !response.body) {
-    throw new Error(`Failed to download attachment: ${response.status}`);
+  if (!response.ok) {
+    throw new Error(`Failed to download attachment "${attachment.name}": ${response.status} ${response.statusText}`);
   }
 
-  // Stream the response body to disk
-  const nodeStream = Readable.fromWeb(response.body as never);
-  const fileStream = createWriteStream(filePath);
-  await pipeline(nodeStream, fileStream);
+  if (!response.body) {
+    throw new Error(`No response body for attachment "${attachment.name}"`);
+  }
 
-  return { path: filePath, contentType: attachment.contentType };
+  // Validate content type if expected
+  const serverContentType = response.headers.get('content-type');
+  if (attachment.contentType && serverContentType && !serverContentType.includes(attachment.contentType.split('/')[0])) {
+    throw new Error(`Content type mismatch for "${attachment.name}": expected ${attachment.contentType}, got ${serverContentType}`);
+  }
+
+  try {
+    // Stream the response body to disk
+    const nodeStream = Readable.fromWeb(response.body as never);
+    const fileStream = createWriteStream(filePath);
+    await pipeline(nodeStream, fileStream);
+
+    return { path: filePath, contentType: serverContentType ?? attachment.contentType };
+  } catch (error) {
+    throw new Error(`Failed to save attachment "${attachment.name}": ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 /**
