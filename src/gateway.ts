@@ -166,6 +166,14 @@ async function runWebSocketConnection(opts: {
     const ws = new WebSocket(`${wsUrl}?ticket=${ticket}`);
     let pingInterval: ReturnType<typeof setInterval> | undefined;
 
+    // Centralized cleanup to prevent interval leaks
+    const cleanup = () => {
+      if (pingInterval !== undefined) {
+        clearInterval(pingInterval);
+        pingInterval = undefined;
+      }
+    };
+
     ws.on('open', () => {
       ctx.setStatus({ running: true, lastStartAt: Date.now() });
       log.info('WebSocket connected.');
@@ -202,23 +210,23 @@ async function runWebSocketConnection(opts: {
     });
 
     ws.on('close', (code, reason) => {
-      clearInterval(pingInterval);
+      cleanup();
       ctx.setStatus({ running: false, lastStopAt: Date.now() });
       log.info(`WebSocket closed: ${code} ${reason.toString()}`);
       resolve(cursor);
     });
 
     ws.on('error', (err) => {
-      clearInterval(pingInterval);
+      cleanup();
       ctx.setStatus({ running: false, lastError: err.message });
       reject(err);
     });
 
-    // Clean shutdown
+    // Clean shutdown - register abort handler before potential errors
     ctx.abortSignal.addEventListener(
       'abort',
       () => {
-        clearInterval(pingInterval);
+        cleanup();
         ws.close(1000, 'shutdown');
       },
       { once: true },
