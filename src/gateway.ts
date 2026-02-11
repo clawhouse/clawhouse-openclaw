@@ -63,19 +63,25 @@ function loadCursor(ctx: ChannelGatewayContext): string | null {
   }
 }
 
-function saveCursor(ctx: ChannelGatewayContext, cursor: string): void {
+function saveCursor(
+  ctx: ChannelGatewayContext,
+  cursor: string,
+  log?: PluginLogger,
+): void {
   try {
     const runtime = getClawHouseRuntime();
     const fs = require('fs') as typeof import('fs');
-    const path = require('path') as typeof import('path');
+    const nodePath = require('path') as typeof import('path');
     const filePath = runtime.state.resolveStorePath(
       `clawhouse/${ctx.accountId}/cursor`,
     );
-    const dir = path.dirname(filePath);
+    const dir = nodePath.dirname(filePath);
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(filePath, cursor, 'utf-8');
-  } catch {
+  } catch (err) {
     // Non-fatal — we'll just re-process some messages on restart
+    const message = err instanceof Error ? err.message : String(err);
+    log?.warn(`Failed to persist cursor: ${message}`);
   }
 }
 
@@ -263,10 +269,10 @@ async function pollAndDeliver(
   log: PluginLogger,
 ): Promise<string | null> {
   try {
-    const isFirstRun = cursor == null;
+    const isFirstRun = !cursor;
 
     const response = await client.listMessages({
-      ...(cursor != null && { cursor }),
+      ...(cursor ? { cursor } : {}),
     });
 
     // On first run, don't deliver old messages — just seed the cursor
@@ -276,7 +282,7 @@ async function pollAndDeliver(
         log.info(
           `First run: skipping ${response.items.length} existing message(s), seeding cursor.`,
         );
-        saveCursor(ctx, response.cursor);
+        saveCursor(ctx, response.cursor, log);
       } else {
         log.info('First run: no messages yet (empty inbox).');
       }
@@ -292,9 +298,11 @@ async function pollAndDeliver(
         log.warn(`Failed to send welcome message: ${errMsg}`);
       }
 
-      // Use a sentinel cursor when the API returns null (empty inbox)
-      // so subsequent polls don't re-trigger the first-run flow.
-      return response.cursor ?? 'SEED';
+      // Return the API cursor, or empty string as sentinel when API returns
+      // null (empty inbox) so subsequent polls don't re-trigger first-run flow.
+      // Empty string is falsy for cursor != null check but won't be sent to
+      // the API since we only include cursor when it's non-null and non-empty.
+      return response.cursor ?? '';
     }
 
     if (response.items.length === 0) return null;
@@ -307,7 +315,7 @@ async function pollAndDeliver(
 
     // Persist cursor
     if (response.cursor) {
-      saveCursor(ctx, response.cursor);
+      saveCursor(ctx, response.cursor, log);
     }
 
     return response.cursor;
