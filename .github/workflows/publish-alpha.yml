@@ -2,7 +2,8 @@ name: Publish Alpha
 
 on:
   push:
-    tags: ['v*-alpha.*']
+    branches: [main]
+    paths: ['package.json']
 
 jobs:
   publish:
@@ -13,27 +14,39 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check if alpha version
+        id: check
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if [[ "$VERSION" == *-alpha* ]]; then
+            echo "is_alpha=true" >> "$GITHUB_OUTPUT"
+            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_alpha=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/setup-node@v4
+        if: steps.check.outputs.is_alpha == 'true'
         with:
           node-version: 24
           cache: 'npm'
 
       - run: npm ci
+        if: steps.check.outputs.is_alpha == 'true'
+
       - run: npm run build
+        if: steps.check.outputs.is_alpha == 'true'
 
-      - name: Verify version matches tag
+      - name: Create tag and GitHub pre-release
+        if: steps.check.outputs.is_alpha == 'true'
         run: |
-          PACKAGE_VERSION="v$(node -p "require('./package.json').version")"
-          TAG="${GITHUB_REF_NAME}"
-          if [ "$PACKAGE_VERSION" != "$TAG" ]; then
-            echo "::error::Package version ($PACKAGE_VERSION) does not match tag ($TAG)"
-            exit 1
-          fi
-
-      - name: Create GitHub pre-release
-        run: gh release create "$GITHUB_REF_NAME" --prerelease --generate-notes
+          TAG="v${{ steps.check.outputs.version }}"
+          git tag "$TAG"
+          git push origin "$TAG"
+          gh release create "$TAG" --prerelease --generate-notes
         env:
           GH_TOKEN: ${{ github.token }}
 
       - name: Publish to npm
+        if: steps.check.outputs.is_alpha == 'true'
         run: npm publish --provenance --tag alpha
