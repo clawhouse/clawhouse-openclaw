@@ -89,7 +89,7 @@ export interface PluginRuntime {
     createLogger(name: string): PluginLogger;
   };
   state: {
-    resolveStorePath(subpath: string): string;
+    resolveStateDir(): string;
   };
 }
 

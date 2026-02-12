@@ -1,11 +1,11 @@
 import { ClawHouseClient } from './client';
+import { resolvePluginStorePath } from './paths';
 import { getClawHouseRuntime } from './runtime';
 import type {
   ChannelGatewayContext,
   ChatMessage,
   ChatMessageAttachment,
   PluginLogger,
-  PluginRuntime,
 } from './types';
 import { randomUUID } from 'node:crypto';
 import { createWriteStream } from 'node:fs';
@@ -79,7 +79,6 @@ function validateDownloadUrl(url: string): void {
  * Includes security validations and error handling.
  */
 async function fetchAndSaveMedia(
-  runtime: PluginRuntime,
   attachment: ChatMessageAttachment,
 ): Promise<{ path: string; contentType: string }> {
   // Validate input
@@ -110,7 +109,7 @@ async function fetchAndSaveMedia(
   const ext = extname(attachment.name) || '.bin';
   const sanitizedName = sanitizeFileName(attachment.name);
   const fileName = `${randomUUID()}_${sanitizedName}${ext}`;
-  const filePath = runtime.state.resolveStorePath(`media/inbound/${fileName}`);
+  const filePath = resolvePluginStorePath(`media/inbound/${fileName}`);
 
   // Ensure directory exists
   await mkdir(dirname(filePath), { recursive: true });
@@ -223,7 +222,7 @@ export async function deliverMessageToAgent(
     }
 
     try {
-      const saved = await fetchAndSaveMedia(runtime, attachment);
+      const saved = await fetchAndSaveMedia(attachment);
       mediaPaths.push(saved.path);
       mediaTypes.push(saved.contentType);
       mediaUrls.push(saved.path);
