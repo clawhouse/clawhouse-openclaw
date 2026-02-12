@@ -69,7 +69,10 @@ export class ClawHouseClient {
     }
 
     const json = (await response.json()) as { result?: { data: T } };
-    return json.result?.data as T;
+    if (!json.result || json.result.data === undefined) {
+      throw new Error('ClawHouse API error: Invalid response structure - missing result data');
+    }
+    return json.result.data;
   }
 
   // Messages
