@@ -273,10 +273,16 @@ export async function deliverMessageToAgent(
               ? payload
               : (payload.text ?? payload.body ?? '');
           if (text) {
+            log.info(
+              `Sending reply to ClawHouse (task: ${message.taskId ?? 'none'}): "${text.slice(0, 80)}..."`,
+            );
             await client.sendMessage({
               content: text,
               taskId: message.taskId ?? undefined,
             });
+            log.info('Reply sent successfully.');
+          } else {
+            log.warn('Deliver callback called with empty text, skipping.');
           }
         },
       });
