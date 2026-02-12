@@ -304,10 +304,8 @@ async function pollAndDeliver(
     const isFirstRun = !cursor || cursor === 'SEED';
     const apiCursor = cursor && cursor !== 'SEED' ? cursor : undefined;
 
-    // Fix CP-02: Request only user-authored messages to prevent bot echo loops
     const response = await client.listMessages({
       ...(apiCursor ? { cursor: apiCursor } : {}),
-      authorType: 'user',
     });
 
     // On first run, don't deliver old messages — just seed the cursor
@@ -340,19 +338,13 @@ async function pollAndDeliver(
       return response.cursor ?? '';
     }
 
-    // Fix CP-02: Defense-in-depth — filter out bot messages client-side
-    // in case the backend authorType filter is not yet deployed
-    const userMessages = response.items.filter(
-      (msg) => msg.authorType !== 'bot',
-    );
+    if (response.items.length === 0) return null;
 
-    if (userMessages.length === 0) return null;
-
-    log.info(`Received ${userMessages.length} new message(s).`);
+    log.info(`Received ${response.items.length} new message(s).`);
 
     // Fix CP-05: save cursor after each successful delivery so a mid-batch
     // failure doesn't cause the entire batch to be re-delivered on retry.
-    for (const message of userMessages) {
+    for (const message of response.items) {
       await deliverMessageToAgent(ctx, message, client);
     }
 
