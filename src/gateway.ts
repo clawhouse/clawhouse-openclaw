@@ -4,6 +4,7 @@ import { dirname } from 'node:path';
 
 import { ClawHouseClient } from './client';
 import { deliverMessageToAgent } from './deliver';
+import { resolvePluginStorePath } from './paths';
 import { getClawHouseRuntime } from './runtime';
 import type {
   ChannelGatewayContext,
@@ -79,11 +80,10 @@ function sleepWithAbort(ms: number, signal: AbortSignal): Promise<void> {
  */
 function loadCursor(ctx: ChannelGatewayContext): string | null {
   try {
-    const runtime = getClawHouseRuntime();
-    const cursorPath = runtime.state.resolveStorePath(
-      `clawhouse/${ctx.accountId}/cursor`,
+    const cursorPath = resolvePluginStorePath(
+      `cursors/${ctx.accountId}/cursor`,
     );
-    return readFileSync(cursorPath, 'utf-8').trim() || null; // Fix PL-02: use ESM import
+    return readFileSync(cursorPath, 'utf-8').trim() || null;
   } catch {
     return null;
   }
@@ -95,9 +95,8 @@ function saveCursor(
   log?: PluginLogger,
 ): void {
   try {
-    const runtime = getClawHouseRuntime();
-    const filePath = runtime.state.resolveStorePath(
-      `clawhouse/${ctx.accountId}/cursor`,
+    const filePath = resolvePluginStorePath(
+      `cursors/${ctx.accountId}/cursor`,
     );
     const dir = dirname(filePath);
     mkdirSync(dir, { recursive: true });
