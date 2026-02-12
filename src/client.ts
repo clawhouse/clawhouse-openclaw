@@ -45,9 +45,8 @@ export class ClawHouseClient {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.requestTimeoutMs);
 
-    let response: Response;
     try {
-      response = await fetch(url, {
+      const response = await fetch(url, {
         method,
         headers: {
           Authorization: `Bot ${this.botToken}`,
@@ -56,29 +55,49 @@ export class ClawHouseClient {
         body: method === 'POST' ? JSON.stringify(input) : undefined,
         signal: controller.signal,
       });
-    } catch (err) {
-      clearTimeout(timer);
-      if (err instanceof DOMException && err.name === 'AbortError') {
+
+      if (!response.ok) {
+        const text = await response.text().catch((err) => {
+          const errMsg = err instanceof Error ? err.message : String(err);
+          return `(failed to read response body: ${errMsg})`;
+        });
+
+        // Categorize errors for better debugging
+        if (response.status === 401 || response.status === 403) {
+          throw new Error(
+            `ClawHouse API authentication failed: ${response.status} ${response.statusText} — ${text}`,
+          );
+        } else if (response.status >= 500) {
+          throw new Error(
+            `ClawHouse API server error: ${response.status} ${response.statusText} — ${text}`,
+          );
+        } else {
+          throw new Error(
+            `ClawHouse API error: ${response.status} ${response.statusText} — ${text}`,
+          );
+        }
+      }
+
+      const json = (await response.json()) as { result?: { data?: T } };
+
+      // Validate tRPC response structure
+      if (!json.result || json.result.data === undefined) {
         throw new Error(
-          `ClawHouse API timeout: ${procedure} did not respond within ${this.requestTimeoutMs}ms`,
+          `ClawHouse API returned invalid tRPC response structure for ${procedure}`,
+        );
+      }
+
+      return json.result.data;
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        throw new Error(
+          `ClawHouse API request to ${procedure} timed out after ${this.requestTimeoutMs}ms`,
         );
       }
       throw err;
+    } finally {
+      clearTimeout(timer);
     }
-    clearTimeout(timer);
-
-    if (!response.ok) {
-      const text = await response.text().catch(() => 'unknown error');
-      throw new Error(
-        `ClawHouse API error: ${response.status} ${response.statusText} — ${text}`,
-      );
-    }
-
-    const json = (await response.json()) as { result?: { data: T } };
-    if (!json.result || json.result.data === undefined) {
-      throw new Error('ClawHouse API error: Invalid response structure - missing result data');
-    }
-    return json.result.data;
   }
 
   // Messages
