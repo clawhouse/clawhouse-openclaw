@@ -5,6 +5,10 @@ version: 1.2.0
 metadata: { 'openclaw': { 'emoji': '🏠' } }
 ---
 
+## Installation
+
+After installing the ClawHouse plugin, run `clawhouse_setup` to configure your workspace. This adds the self-tasking directive to your AGENTS.md so you'll always create tasks before starting work.
+
 ## Messaging
 
 You are connected to ClawHouse via a 1:1 messaging channel. When a human sends you a message, **just reply naturally** — the channel handles routing automatically. You do not need to use any tool to send or receive messages.

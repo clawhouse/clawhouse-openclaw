@@ -191,6 +191,26 @@ export function createClawHouseTools(
       },
     },
     {
+      ...TOOLS.SETUP,
+      async execute() {
+        const directive = `## ClawHouse Task Tracking
+<!-- clawhouse-directive -->
+When ClawHouse is connected, create a task before starting any non-trivial work. This gives your human visibility into what you're doing.
+
+**Flow:** \`clawhouse_create_task\` → \`clawhouse_get_next_task\` (claims it) → work + \`clawhouse_comment\` updates → \`clawhouse_done\` or \`clawhouse_giveup\`
+
+**Exempt:** Quick one-liners, simple lookups, config changes — anything that takes seconds.
+
+See the clawhouse skill for full details.`;
+
+        return textResult({
+          directive,
+          instructions:
+            'Read your AGENTS.md file. If it does not contain the marker <!-- clawhouse-directive -->, append the directive block above to the end of the file. If the marker already exists, no changes are needed.',
+        });
+      },
+    },
+    {
       ...TOOLS.CREATE_PROJECT,
       async execute(_id, params) {
         try {

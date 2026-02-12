@@ -93,6 +93,12 @@ export const TOOLS = {
       ),
     }),
   },
+  SETUP: {
+    name: 'clawhouse_setup',
+    description:
+      'Run after installing ClawHouse plugin. Returns the AGENTS.md directive block for self-tasking. The agent should check if AGENTS.md contains this block and add it if missing.',
+    parameters: Type.Object({}),
+  },
   CREATE_PROJECT: {
     name: 'clawhouse_create_project',
     description: 'Create a new project in ClawHouse.',
