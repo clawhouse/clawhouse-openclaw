@@ -220,18 +220,64 @@ export const clawHousePlugin: ChannelPlugin = {
 
     validateInput(params) {
       const { input } = params;
-      if (!input.botToken?.startsWith('bot_')) {
+      
+      // Validate bot token
+      if (!input.botToken) {
+        return 'Bot token is required';
+      }
+      if (typeof input.botToken !== 'string') {
+        return 'Bot token must be a string';
+      }
+      if (!input.botToken.startsWith('bot_')) {
         return 'Bot token must start with "bot_"';
       }
+      if (input.botToken.length < 10) {
+        return 'Bot token appears to be too short (minimum 10 characters)';
+      }
+      
+      // Validate API URL
       if (!input.apiUrl) {
         return 'API URL is required';
       }
+      if (typeof input.apiUrl !== 'string') {
+        return 'API URL must be a string';
+      }
+      try {
+        const apiUrl = new URL(input.apiUrl);
+        if (apiUrl.protocol !== 'https:') {
+          return 'API URL must use HTTPS protocol';
+        }
+      } catch {
+        return 'API URL must be a valid URL';
+      }
+      
+      // Validate WebSocket URL
       if (!input.wsUrl) {
         return 'WebSocket URL is required';
       }
+      if (typeof input.wsUrl !== 'string') {
+        return 'WebSocket URL must be a string';
+      }
+      try {
+        const wsUrl = new URL(input.wsUrl);
+        if (!['ws:', 'wss:'].includes(wsUrl.protocol)) {
+          return 'WebSocket URL must use ws:// or wss:// protocol';
+        }
+      } catch {
+        return 'WebSocket URL must be a valid URL';
+      }
+      
+      // Validate User ID
       if (!input.userId) {
         return 'User ID is required';
       }
+      if (typeof input.userId !== 'string') {
+        return 'User ID must be a string';
+      }
+      if (!/^[UBPT][A-Z0-9]{10}$/i.test(input.userId)) {
+        return 'User ID must be a valid ClawHouse ID (e.g. U9QF3C6X1A)';
+      }
+      
       return null;
     },
   },
@@ -302,36 +348,59 @@ export const clawHousePlugin: ChannelPlugin = {
         message: 'Bot token',
         initialValue: ch?.botToken ?? '',
         placeholder: 'bot_xxxxxxxxxxxxxxxx',
-        validate: (v) =>
-          v.startsWith('bot_') ? undefined : 'Must start with "bot_"',
+        validate: (v) => {
+          if (!v) return 'Bot token is required';
+          if (!v.startsWith('bot_')) return 'Must start with "bot_"';
+          if (v.length < 10) return 'Bot token appears to be too short';
+          return undefined;
+        },
       });
 
       const apiUrl = await ctx.prompter.text({
         message: 'API URL',
         initialValue: ch?.apiUrl ?? '',
         placeholder: 'https://app.clawhouse.net/v1/bot',
-        validate: (v) =>
-          v.startsWith('http')
-            ? undefined
-            : 'Must start with http:// or https://',
+        validate: (v) => {
+          if (!v) return 'API URL is required';
+          try {
+            const url = new URL(v);
+            if (url.protocol !== 'https:') return 'Must use HTTPS protocol for security';
+            return undefined;
+          } catch {
+            return 'Must be a valid HTTPS URL';
+          }
+        },
       });
 
       const wsUrl = await ctx.prompter.text({
         message: 'WebSocket URL',
         initialValue: ch?.wsUrl ?? '',
         placeholder: 'wss://ws.clawhouse.net',
-        validate: (v) =>
-          v.startsWith('ws') ? undefined : 'Must start with ws:// or wss://',
+        validate: (v) => {
+          if (!v) return 'WebSocket URL is required';
+          try {
+            const url = new URL(v);
+            if (!['ws:', 'wss:'].includes(url.protocol)) {
+              return 'Must use ws:// or wss:// protocol';
+            }
+            return undefined;
+          } catch {
+            return 'Must be a valid WebSocket URL';
+          }
+        },
       });
 
       const userId = await ctx.prompter.text({
         message: 'Your ClawHouse User ID (shown in install instructions)',
         initialValue: ch?.userId ?? '',
         placeholder: 'U9QF3C6X1A',
-        validate: (v) =>
-          /^[UBPT][A-Z0-9]{10}$/i.test(v)
-            ? undefined
-            : 'Must be a valid ClawHouse ID (e.g. U9QF3C6X1A)',
+        validate: (v) => {
+          if (!v) return 'User ID is required';
+          if (!/^[UBPT][A-Z0-9]{10}$/i.test(v)) {
+            return 'Must be a valid ClawHouse ID (e.g. U9QF3C6X1A)';
+          }
+          return undefined;
+        },
       });
 
       const updatedCfg = clawHousePlugin.setup!.applyAccountConfig({
