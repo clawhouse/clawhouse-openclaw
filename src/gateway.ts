@@ -131,6 +131,7 @@ export async function startClawHouseConnection(
 
   let cursor = loadCursor(ctx);
   const backoff: BackoffState = { attempt: 0 };
+  let totalReconnects = 0;
 
   log.info(
     `Starting ClawHouse connection for account ${ctx.accountId}` +
@@ -143,7 +144,11 @@ export async function startClawHouseConnection(
       const { ticket, wsUrl } = await client.getWsTicket();
       resetBackoff(backoff);
 
-      log.info(`Got WS ticket, connecting to ${wsUrl}...`);
+      if (totalReconnects > 0) {
+        log.info(`Got WS ticket, reconnecting to ${wsUrl}... (reconnect #${totalReconnects})`);
+      } else {
+        log.info(`Got WS ticket, connecting to ${wsUrl}...`);
+      }
 
       cursor = await runWebSocketConnection({
         ticket,
@@ -153,26 +158,30 @@ export async function startClawHouseConnection(
         cursor,
         log,
       });
+
+      // Connection closed cleanly — will reconnect
+      totalReconnects++;
     } catch (err) {
+      totalReconnects++;
       const message = err instanceof Error ? err.message : String(err);
 
       // If ticket fetch fails, fall back to polling
-      if (message.includes('API error')) {
-        log.warn(`Ticket fetch failed: ${message}. Falling back to polling.`);
+      if (message.includes('API error') || message.includes('authentication failed') || message.includes('server error')) {
+        log.warn(`Ticket fetch failed (attempt #${totalReconnects}): ${message}. Falling back to polling.`);
         cursor = await runPollingFallback({ client, ctx, cursor, log });
       } else {
-        log.warn(`Connection error: ${message}`);
+        log.warn(`Connection error (attempt #${totalReconnects}): ${message}`);
       }
 
       if (ctx.abortSignal.aborted) break;
 
       const delay = nextBackoff(backoff);
-      log.info(`Reconnecting in ${Math.round(delay)}ms...`);
+      log.info(`Reconnecting in ${Math.round(delay)}ms (attempt #${totalReconnects + 1})...`);
       await sleepWithAbort(delay, ctx.abortSignal);
     }
   }
 
-  log.info('ClawHouse connection loop exited.');
+  log.info(`ClawHouse connection loop exited after ${totalReconnects} reconnect(s).`);
 }
 
 /**
