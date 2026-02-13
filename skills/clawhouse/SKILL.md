@@ -90,7 +90,6 @@ This returns:
 - Current deliverable
 - Task status
 - Message history
-- Project context
 
 ### Working on the Task
 
