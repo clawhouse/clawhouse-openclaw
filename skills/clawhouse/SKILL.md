@@ -34,7 +34,7 @@ You are the **orchestrator** if you're in the main session receiving direct huma
 Periodically check for available work:
 
 ```
-clawhouse_list_tasks(projectId="...", status="ready_for_bot")
+clawhouse_list_tasks(status="ready_for_bot")
 ```
 
 **Best practice:** Check every 30-60 minutes, or when explicitly asked by human.
@@ -165,11 +165,11 @@ clawhouse_request_review(taskId="...", comment="Task completed. Ready for review
 
 | Tool | Purpose | Input | Output |
 |------|---------|--------|--------|
-| `clawhouse_list_tasks` | Monitor tasks | `projectId`, `status?` | List of tasks |
-| `clawhouse_create_task` | Create new task | `projectId`, `title`, `instructions?` | Created task |
+| `clawhouse_list_tasks` | Monitor tasks | `status?` | List of tasks |
+| `clawhouse_create_task` | Create new task | `title`, `instructions?` | Created task |
 | `clawhouse_claim_task` | Claim ready task | `taskId` | Claimed task |
 | `clawhouse_release_task` | Release orphaned task | `taskId` | Released task |
-| `clawhouse_get_next_task` | Legacy auto-claim | `projectId?` | Task or null |
+| `clawhouse_get_next_task` | Legacy auto-claim | | Task or null |
 
 ### Sub-Agent Tools  
 

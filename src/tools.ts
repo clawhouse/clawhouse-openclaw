@@ -97,9 +97,7 @@ export function createClawHouseTools(
       ...TOOLS.GET_NEXT_TASK,
       async execute(_id, params) {
         try {
-          const result = await client.getNextTask({
-            projectId: params.projectId as string | undefined,
-          });
+          const result = await client.getNextTask();
           return textResult(result);
         } catch (err) {
           return errorResult(err);
@@ -192,7 +190,6 @@ export function createClawHouseTools(
       async execute(_id, params) {
         try {
           const result = await client.listTasks({
-            projectId: params.projectId as string,
             status: params.status as string | undefined,
           });
           return textResult(result);
@@ -232,22 +229,10 @@ export function createClawHouseTools(
       },
     },
     {
-      ...TOOLS.LIST_PROJECTS,
-      async execute() {
-        try {
-          const result = await client.listProjects();
-          return textResult(result);
-        } catch (err) {
-          return errorResult(err);
-        }
-      },
-    },
-    {
       ...TOOLS.CREATE_TASK,
       async execute(_id, params) {
         try {
           const result = await client.createTask({
-            projectId: params.projectId as string,
             title: params.title as string,
             instructions: params.instructions as string | undefined,
           });
@@ -275,22 +260,6 @@ See the clawhouse skill for full details.`;
           instructions:
             'Read your AGENTS.md file. If it does not contain the marker <!-- clawhouse-directive -->, append the directive block above to the end of the file. If the marker already exists, no changes are needed.',
         });
-      },
-    },
-    {
-      ...TOOLS.CREATE_PROJECT,
-      async execute(_id, params) {
-        try {
-          const result = await client.createProject({
-            name: params.name as string,
-            key: params.key as string,
-            description: params.description as string | undefined,
-            color: params.color as string | undefined,
-          });
-          return textResult(result);
-        } catch (err) {
-          return errorResult(err);
-        }
       },
     },
   ];

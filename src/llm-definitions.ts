@@ -17,11 +17,7 @@ export const TOOLS = {
     name: 'clawhouse_get_next_task',
     description:
       'Pick up the next available task from ClawHouse. Atomically claims the oldest ready_for_bot task and moves it to working_on_it. Returns the task object with instructions, or null if none available. DEPRECATED: Use clawhouse_claim_task instead for Task Orchestration v2.',
-    parameters: Type.Object({
-      projectId: Type.Optional(
-        Type.String({ description: 'Filter to a specific project UUID' }),
-      ),
-    }),
+    parameters: Type.Object({}),
   },
   GET_TASK: {
     name: 'clawhouse_get_task',
@@ -77,9 +73,8 @@ export const TOOLS = {
   LIST_TASKS: {
     name: 'clawhouse_list_tasks',
     description:
-      'List all tasks in a ClawHouse project, ordered by most recently updated.',
+      'List all tasks in ClawHouse, ordered by most recently updated.',
     parameters: Type.Object({
-      projectId: Type.String({ description: 'Project UUID (required)' }),
       status: Type.Optional(
         Type.String({
           description:
@@ -116,17 +111,11 @@ export const TOOLS = {
       }),
     }),
   },
-  LIST_PROJECTS: {
-    name: 'clawhouse_list_projects',
-    description: 'List all projects accessible to this bot in ClawHouse.',
-    parameters: Type.Object({}),
-  },
   CREATE_TASK: {
     name: 'clawhouse_create_task',
     description:
-      'Create a new task in a ClawHouse project. The task starts in ready_for_bot status.',
+      'Create a new task in ClawHouse. The task starts in ready_for_bot status.',
     parameters: Type.Object({
-      projectId: Type.String({ description: 'Project UUID' }),
       title: Type.String({ description: 'Task title (max 200 chars)' }),
       instructions: Type.Optional(
         Type.String({ description: 'Detailed instructions for the task' }),
@@ -138,22 +127,6 @@ export const TOOLS = {
     description:
       'Run after installing ClawHouse plugin. Returns the AGENTS.md directive block for self-tasking. The agent should check if AGENTS.md contains this block and add it if missing.',
     parameters: Type.Object({}),
-  },
-  CREATE_PROJECT: {
-    name: 'clawhouse_create_project',
-    description: 'Create a new project in ClawHouse.',
-    parameters: Type.Object({
-      name: Type.String({ description: 'Project name' }),
-      key: Type.String({
-        description: 'Project key (2-10 uppercase letters)',
-      }),
-      description: Type.Optional(
-        Type.String({ description: 'Project description' }),
-      ),
-      color: Type.Optional(
-        Type.String({ description: 'Hex color code (e.g. #3B82F6)' }),
-      ),
-    }),
   },
 } as const;
 

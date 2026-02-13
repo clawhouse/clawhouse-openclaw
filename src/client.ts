@@ -3,11 +3,8 @@ import type {
   MessagesResponse,
   WsTicketResponse,
   Task,
-  Project,
   TasksListResponse,
-  ProjectsListResponse,
   CreateTaskResponse,
-  CreateProjectResponse,
 } from './types';
 
 /**
@@ -134,18 +131,16 @@ export class ClawHouseClient {
 
   // Tasks
   async createTask(input: {
-    projectId: string;
     title: string;
     instructions?: string;
   }): Promise<CreateTaskResponse> {
     return this.request('POST', 'tasks.create', input);
   }
 
-  async listTasks(input: {
-    projectId: string;
+  async listTasks(input?: {
     status?: string;
   }): Promise<TasksListResponse> {
-    return this.request('GET', 'tasks.list', input);
+    return this.request('GET', 'tasks.list', input ?? {});
   }
 
   async done(input: {
@@ -164,8 +159,8 @@ export class ClawHouseClient {
     return this.request('POST', 'tasks.giveup', input);
   }
 
-  async getNextTask(input?: { projectId?: string }): Promise<Task | null> {
-    return this.request('POST', 'tasks.getNextTask', input ?? {});
+  async getNextTask(): Promise<Task | null> {
+    return this.request('POST', 'tasks.getNextTask', {});
   }
 
   async claimTask(input: { taskId: string }): Promise<Task> {
@@ -188,27 +183,14 @@ export class ClawHouseClient {
     return this.request('GET', 'tasks.get', input);
   }
 
-  async listProjects(): Promise<ProjectsListResponse> {
-    return this.request('GET', 'projects.list', {});
-  }
-
-  async createProject(input: {
-    name: string;
-    key: string;
-    description?: string;
-    color?: string;
-  }): Promise<CreateProjectResponse> {
-    return this.request('POST', 'projects.create', input);
-  }
-
-  // Probe — lightweight health check via projects.list
+  // Probe — lightweight health check via tasks.list
   async probe(timeoutMs: number): Promise<ChannelProbeResult> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
       const response = await fetch(
-        `${this.apiUrl}/projects.list?input=${encodeURIComponent(JSON.stringify({}))}`,
+        `${this.apiUrl}/tasks.list?input=${encodeURIComponent(JSON.stringify({ limit: 1 }))}`,
         {
           method: 'GET',
           headers: {
